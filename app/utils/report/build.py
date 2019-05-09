@@ -65,7 +65,8 @@ BUILD_SUMMARY_URL = \
 
 
 # Other template strings.
-DEFCONFIG_URL_HTML = u"<a href=\"{defconfig_url:s}\">{defconfig:s} ({build_environment:s})</a>"
+DEFCONFIG_URL_HTML = \
+    u"<a href=\"{defconfig_url:s}\">{defconfig:s} ({build_environment:s})</a>"
 STATUS_HTML = (
     u"<a style=\"color: {red:s}\" href=\"{log_url:s}\">{status:s}</a>"
 )
@@ -338,7 +339,9 @@ def _parse_and_structure_results(**kwargs):
                     subs["defconfig_url"] = DEFCONFIG_ID_URL
                     subs["build_id"] = struct[3]
 
-                txt_str = G_(u"{defconfig:s}: ({build_environment:s}) {status:s}").format(**subs)
+                txt_str = G_(
+                    u"{defconfig:s}: ({build_environment:s}) {status:s}"
+                ).format(**subs)
                 html_str = (
                     DEFCONFIG_URL_HTML.format(**subs).format(**subs),
                     STATUS_HTML.format(**subs).format(**subs))
@@ -420,7 +423,8 @@ def _parse_and_structure_results(**kwargs):
                     subs["txt_desc_str"] = txt_desc_str
 
                     txt_defconfig_str = (
-                        G_(u"{defconfig:s} ({build_environment:s}): {txt_desc_str:s}").format(**subs)
+                        G_(u"{defconfig:s} ({build_environment:s}): " +
+                           u"{txt_desc_str:s}").format(**subs)
                     ).format(**subs)
                     html_defconfing_str = (
                         DEFCONFIG_URL_HTML.format(**subs).format(**subs),
