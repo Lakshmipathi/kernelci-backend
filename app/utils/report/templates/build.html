@@ -55,23 +55,18 @@
                 <tbody>
                 {%- for arch, arch_data in platforms.error_data.data|dictsort %}
                     <tr>
-                        <td colspan="3" align="left" style="padding-bottom: 5px;">
-                            {{ arch }}
-                        </td>
+                        <td colspan="2" align="left" style="padding-bottom: 5px;">{{ arch }}</td>
                     </tr>
                 {%- for defconfig_data in arch_data %}
-                {{ defconfig_data }}
-                {%- for build_environment in defconfig_data %}
                     <tr>
-                        <td>{{ build_environment }}</td>
-                        <td align="left" style="padding-left: 25px; padding-right: 5px;">{{ defconfig_data[1][0] }}
-                        </td>
-                        <td align="right" style="padding-right: 5px;">
-                            {{ defconfig_data[1][1][0] }}
-                        </td>
-                        <td align="right">{{ defconfig_data[1][1][1] }}</td>
+                        <td style="padding-left: 25px; padding-right: 5px;">{{ defconfig_data[1][0] }}</td>
+                        {%- if defconfig_data[1][1][1] %}
+                        <td align="center">{{ defconfig_data[1][1][1] }}</td>
+                        {%- endif %}
+                        {%- if defconfig_data[1][1][0] %}
+                        <td align="center">{{ defconfig_data[1][1][0] }}</td>
+                        {%- endif %}
                     </tr>
-                {%- endfor %}{# build_environment #}
                 {%- endfor %}{# defconfig #}
                 <tr><td style="padding-bottom: 5px;"></td></tr>
                 {%- endfor %}{# arch #}
