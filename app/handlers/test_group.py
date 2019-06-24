@@ -24,6 +24,7 @@ import models.test_group as mtgroup
 import taskqueue.tasks.test as taskq
 import utils
 import utils.db
+import utils.kci_test as kci_test
 
 
 # pylint: disable=too-many-public-methods
@@ -57,69 +58,24 @@ class TestGroupHandler(htbase.TestBaseHandler):
             group_pop = group_json.pop
             group_get = group_json.get
 
-            # Remove the test_cases from the JSON and pass it as is.
-            cases_list = group_pop(models.TEST_CASES_KEY, [])
-
             group_name = group_get(models.NAME_KEY)
             # TODO: move name validation into the initial json validation.
             if utils.valid_test_name(group_name):
-                # Make sure the *_id values passed are valid.
-                ret_val, error = self._check_references(
-                    group_get(models.BUILD_ID_KEY, None),
-                    group_get(models.JOB_ID_KEY, None)
-                )
+                ret_val, group_id, errors = kci_test.import_and_save_kci_tests(group_json,
+                                                                               self.settings["dboptions"])
 
-                if ret_val == 200:
-                    test_group = \
-                        mtgroup.TestGroupDocument.from_json(group_json)
-                    test_group.created_on = datetime.datetime.now(
-                        tz=bson.tz_util.utc)
-
-                    ret_val, group_id = utils.db.save(
-                        self.db, test_group, manipulate=True)
-
-                    if ret_val == 201:
-                        response.status_code = ret_val
-                        response.result = {models.ID_KEY: group_id}
-                        response.reason = (
-                            "Test group '%s' created" %
-                            group_name)
-                        response.headers = {
-                            "Location": "/test/group/%s" % str(group_id)}
-
-                        if cases_list:
-                            if isinstance(cases_list, types.ListType):
-                                response.status_code = 202
-                                response.messages = (
-                                    "Test cases will be parsed and imported")
-                            else:
-                                cases_list = []
-                                response.errors = (
-                                    "Test cases are not wrapped in a "
-                                    "list; they will not be imported")
-
-                        # Complete the update of the test group and import
-                        # everything else.
-                        if all([cases_list]):
-                            self._import_group_and_cases(
-                                group_json, group_id, cases_list, group_name)
-                        else:
-                            # Just update the test group document.
-                            taskq.complete_test_group_import.apply_async(
-                                [
-                                    group_json,
-                                    group_id,
-                                    group_name,
-                                    self.settings["dboptions"]
-                                ]
-                            )
-                    else:
-                        response.status_code = ret_val
-                        response.reason = (
-                            "Error saving test group '%s'" % group_name)
+                if ret_val == 201:
+                    response.status_code = ret_val
+                    response.result = {models.ID_KEY: group_id}
+                    response.reason = (
+                        "Test group '%s' created" %
+                        group_name)
+                    response.headers = {
+                        "Location": "/test/group/%s" % str(group_id)}
                 else:
-                    response.status_code = 400
-                    response.reason = error
+                    response.status_code = ret_val
+                    response.reason = (
+                        "Error saving test group '%s'" % group_name)
             else:
                 response.status_code = 400
                 response.reason = "Test group name not valid"

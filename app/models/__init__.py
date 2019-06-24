@@ -830,6 +830,7 @@ TEST_GROUP_VALID_KEYS = {
             BUILD_ID_KEY,
             DEFCONFIG_KEY,
             DEFINITION_URI_KEY,
+            GIT_COMMIT_KEY,
             GIT_BRANCH_KEY,
             INDEX_KEY,
             INITRD_KEY,
@@ -840,7 +841,9 @@ TEST_GROUP_VALID_KEYS = {
             LAB_NAME_KEY,
             METADATA_KEY,
             NAME_KEY,
+            SUB_GROUPS_KEY,
             TEST_CASES_KEY,
+            TIME_KEY,
             VCS_COMMIT_KEY,
             VERSION_KEY
         ]
