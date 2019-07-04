@@ -203,6 +203,18 @@ def create_test_report(data, email_format, db_options,
     git_url, git_commit = (groups[0][k] for k in [
         models.GIT_URL_KEY, models.GIT_COMMIT_KEY])
 
+    # Add test suites info if it's the same for all the groups (typical case)
+    keys = set()
+    for g in groups:
+        try:
+            suites = g[models.INITRD_INFO_KEY]['tests_suites']
+            keys.add(tuple((ts['name'], ts['git_commit']) for ts in suites))
+        except KeyError:
+            keys.add(None)
+
+    test_suites = (groups[0][models.INITRD_INFO_KEY]['tests_suites']
+                   if len(keys) == 1 else None)
+
     headers = {
         rcommon.X_REPORT: rcommon.TEST_REPORT_TYPE,
         rcommon.X_BRANCH: branch,
@@ -222,6 +234,7 @@ def create_test_report(data, email_format, db_options,
         "boot_log_html": models.BOOT_LOG_HTML_KEY,
         "storage_url": rcommon.DEFAULT_STORAGE_URL,
         "test_groups": groups,
+        "test_suites": test_suites,
     }
 
     template = plan_options.get("template", "test.txt")
