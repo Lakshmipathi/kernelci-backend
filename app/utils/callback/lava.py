@@ -453,6 +453,9 @@ def _add_test_results(group, suite_results, suite_name):
                 "value": float(measurement),
                 "unit": test["unit"],
             }]
+        reference = test.get("reference")
+        if reference:
+            test_case[models.ATTACHMENTS_KEY] = [reference]
         test_case_list.append(test_case)
 
     sub_groups = []
