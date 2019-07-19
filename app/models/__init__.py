@@ -815,9 +815,14 @@ BISECT_VALID_KEYS = {
 TEST_GROUP_VALID_KEYS = {
     "POST": {
         MANDATORY_KEYS: [
+            ARCHITECTURE_KEY,
+            BUILD_ENVIRONMENT_KEY,
+            DEFCONFIG_KEY,
+            GIT_BRANCH_KEY,
+            JOB_KEY,
+            KERNEL_KEY,
             LAB_NAME_KEY,
             NAME_KEY,
-            BUILD_ENVIRONMENT_KEY,
         ],
         ACCEPTED_KEYS: [
             ARCHITECTURE_KEY,
