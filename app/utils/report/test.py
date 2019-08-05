@@ -145,7 +145,7 @@ def _add_test_group_data(group, db, spec, hierarchy=[]):
     })
 
 
-def create_test_report(data, email_format, test_template, db_options,
+def create_test_report(data, email_format, email_template, db_options,
                        base_path=utils.BASE_PATH):
     """Create the tests report email to be sent.
 
@@ -153,6 +153,8 @@ def create_test_report(data, email_format, test_template, db_options,
     :type data: dictionary
     :param email_format: The email format to send.
     :type email_format: list
+    :param email_template: The email template to use send.
+    :type email_template: str
     :param db_options: The mongodb database connection parameters.
     :type db_options: dict
     :param base_path: Path to the top-level storage directory.
@@ -261,15 +263,15 @@ def create_test_report(data, email_format, test_template, db_options,
         "totals": totals,
     }
 
-    if test_template:
+    if email_template:
         path = os.getcwd() + "/utils/report/templates"
         templates = [t for t in os.listdir(path)]
-        test_template = str(test_template) + ".txt"
-        if test_template in templates:
-            template = test_template
+        template_file = str(email_template) + ".txt"
+        if template_file in templates:
+            template = template_file
         else:
-            utils.LOG.warning("%s: this template does not exist" % str(
-                test_template))
+            utils.LOG.warning("Email template not found: {}".format(
+                template_file))
             return None
     else:
         template = "test.txt"

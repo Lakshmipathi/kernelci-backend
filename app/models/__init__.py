@@ -87,6 +87,7 @@ EMAIL_FORMAT_KEY = "format"
 EMAIL_HTML_FORMAT_KEY = "html"
 EMAIL_KEY = "email"
 EMAIL_LIST_KEY = "emails"
+EMAIL_TEMPLATE = "template"
 EMAIL_TXT_FORMAT_KEY = "txt"
 ENDIANNESS_KEY = "endian"
 ERRORS_COUNT_KEY = "errors_count"
@@ -172,7 +173,6 @@ TEST_JOB_PATH_KEY = "test_job_path"
 TEST_JOB_URL_KEY = "test_job_url"
 TEST_GROUP_ID_KEY = "test_group_id"
 TEST_GROUP_NAME_KEY = "test_group_name"
-TEST_TEMPLATE = "test_template"
 TEXT_OFFSET_KEY = "text_offset"
 TIME_KEY = "time"
 TIME_RANGE_KEY = "time_range"
@@ -773,7 +773,7 @@ SEND_VALID_KEYS = {
             SEND_BOOT_REPORT_KEY,
             SEND_BUILD_REPORT_KEY,
             SUBJECT_KEY,
-            TEST_TEMPLATE,
+            EMAIL_TEMPLATE,
             # Bisection keys
             TYPE_KEY,
             ARCHITECTURE_KEY,
