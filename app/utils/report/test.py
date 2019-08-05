@@ -145,18 +145,18 @@ def _add_test_group_data(group, db, spec, hierarchy=[]):
     })
 
 
-def create_test_report(data, email_format, email_template, db_options,
+def create_test_report(db_options, data, email_format, email_template=None,
                        base_path=utils.BASE_PATH):
     """Create the tests report email to be sent.
 
+    :param db_options: The mongodb database connection parameters.
+    :type db_options: dict
     :param data: The meta-data for the test job.
     :type data: dictionary
     :param email_format: The email format to send.
     :type email_format: list
-    :param email_template: The email template to use send.
+    :param email_template: A specific email template to use.
     :type email_template: str
-    :param db_options: The mongodb database connection parameters.
-    :type db_options: dict
     :param base_path: Path to the top-level storage directory.
     :type base_path: string
     :return A tuple with the email body, the email subject and the headers as
@@ -263,19 +263,7 @@ def create_test_report(data, email_format, email_template, db_options,
         "totals": totals,
     }
 
-    if email_template:
-        path = os.getcwd() + "/utils/report/templates"
-        templates = [t for t in os.listdir(path)]
-        template_file = str(email_template) + ".txt"
-        if template_file in templates:
-            template = template_file
-        else:
-            utils.LOG.warning("Email template not found: {}".format(
-                template_file))
-            return None
-    else:
-        template = "test.txt"
-
+    template = email_template or "test.txt"
     template_data.update(plan_options.get("params", {}))
     body = rcommon.create_txt_email(template, **template_data)
 
