@@ -510,7 +510,10 @@ def _add_rootfs_info(group, base_path, file_name="build_info.json"):
         return
 
     try:
-        if rootfs_url.startswith(DEFAULT_STORAGE_URL):
+        # strip the http[s] before comparing with default URL
+        scheme, sep, _default_url = DEFAULT_STORAGE_URL.partition(':')
+        scheme, sep, _rootfs_url = rootfs_url.partition(':')
+        if _rootfs_url.startswith(_default_url):
             rootfs_url_path = urllib2.urlparse.urlparse(rootfs_url).path
             rootfs_rel_dir = os.path.dirname(rootfs_url_path).lstrip("/")
             json_file = os.path.join(base_path, rootfs_rel_dir, file_name)
