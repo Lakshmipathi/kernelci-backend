@@ -39,8 +39,11 @@ HTML_HEAD = """\
   body {{ background-color: black; color: white; }}
   pre {{ font-size: 0.8em; }}
   span.pass {{ color: green; }}
-  span.err {{ color: red; }}
-  span.warn {{ color: #F88017; }}
+  span.alert {{ color: red; }}
+  span.err {{ color: #FF7F7F; }}
+  span.debug {{color: #FFFFFF; }}
+  span.info {{color: #CCCCCC; }}
+  span.warn {{ color: #FFA500; }}
   span.timestamp {{ color: #AAFFAA; }}
   a:link {{text-decoration: none }}
   a:visited {{text-decoration: none }}
@@ -73,11 +76,35 @@ def run(log, boot, txt, html):
     else:
         boot_result_html = "<span class=\"warn\">{}</span>".format(boot_result)
 
+    # panic, error and warn are considered deprecated, but still here 
+    # for ensure that everything will works well in any case.
     formats = {
+        "emerg": "<span class=\"info\">{}</span>\n",
+        "alert": "<span class=\"alert\">{}</span>\n",
+        "crit": "<span class=\"alert\">{}</span>\n",
+        "err": "<span class=\"err\">{}</span>\n",
         "warning": "<span class=\"warn\">{}</span>\n",
+        "notice": "<span class=\"info\">{}</span>\n",
+        "info": "<span class=\"info\">{}</span>\n",
+        "debug": "<span class=\"debug\">{}</span>\n",
+        "panic": "<span class=\"alert\">{}</span>\n",
         "error": "<span class=\"err\">{}</span>\n",
+        "warn": "<span class=\"warn\">{}</span>\n"
     }
-    numbers = {"warning": 0, "error": 0}
+    numbers = {
+        "emerg": 0, 
+        "alert": 0, 
+        "crit": 0,
+        "err": 0,   
+        "warning": 0, 
+        "notice": 0, 
+        "info": 0, 
+        "debug": 0,
+        "panic": 0,
+        "error":0,
+        "warn": 0   
+    }
+
     start_ts = None
     log_buffer = []
 
@@ -87,11 +114,19 @@ def run(log, boot, txt, html):
         timestamp = "<span class=\"timestamp\">{}  </span>".format(raw_ts)
 
         fmt = formats.get(level)
+        
+        if(isinstance(msg, list)):
+            msg = ' '.join(msg)  
+
         if fmt:
             log_buffer.append(timestamp + fmt.format(cgi.escape(msg)))
             numbers[level] += 1
-        elif level == "target":
-            log_buffer.append(timestamp + cgi.escape(msg) + "\n")
+        elif level == "target":            
+            if (re.search('\<([0-7])\>', msg)):
+                fmt = formats.values()[int(re.search('\<([0-7])\>', msg).group(1))]
+                log_buffer.append(timestamp + fmt.format(cgi.escape(msg)))    
+            else:
+                log_buffer.append(timestamp + cgi.escape(msg) + "\n")
             txt.write(msg)
             txt.write("\n")
         elif level == "info" and msg.startswith("Start time: "):
@@ -101,8 +136,8 @@ def run(log, boot, txt, html):
     html.write("<ul class=\"results\">")
     results = {
         "Boot result": boot_result_html,
-        "Errors": numbers["error"],
-        "Warnings": numbers["warning"],
+        "Errors": numbers["error"] + numbers["err"],
+        "Warnings": numbers["warning"] + numbers["warn"],
     }
     for title, value in results.iteritems():
         html.write("<li class=\"result\">{}: {}</li>".format(title, value))
@@ -113,7 +148,6 @@ def run(log, boot, txt, html):
         html.write(line)
     html.write("</pre></body></html>\n")
 
-
 def main(args):
     with open(args.log, "r") as log_yaml:
         log = yaml.load(log_yaml, Loader=yaml.CLoader)
@@ -123,8 +157,7 @@ def main(args):
 
     with open(args.txt, "w") as txt, open(args.html, "w") as html:
         run(log, boot, txt, html)
-
-
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Generate HTML page from kernel boot log")
     parser.add_argument("--log", required=True,
