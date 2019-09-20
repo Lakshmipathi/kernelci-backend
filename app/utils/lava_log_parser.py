@@ -40,6 +40,8 @@ HTML_HEAD = """\
   pre {{ font-size: 0.8em; }}
   span.pass {{ color: green; }}
   span.err {{ color: red; }}
+  span.debug {{color: #E2E203; }}
+  span.default {{color: #D8D7D7; }}
   span.warn {{ color: #F88017; }}
   span.timestamp {{ color: #AAFFAA; }}
   a:link {{text-decoration: none }}
@@ -76,8 +78,27 @@ def run(log, boot, txt, html):
     formats = {
         "warning": "<span class=\"warn\">{}</span>\n",
         "error": "<span class=\"err\">{}</span>\n",
+        "debug": "<span class=\"default\">{}</span>\n",
+        "panic": "<span class=\"err\">{}</span>\n",
+        "alert": "<span class=\"err\">{}</span>\n",
+        "crit": "<span class=\"default\">{}</span>\n",
+        "notice": "<span class=\"default\">{}</span>\n",
+        "info": "<span class=\"default\">{}</span>\n"
     }
-    numbers = {"warning": 0, "error": 0}
+    numbers = {
+        #"emerg": 0, 
+        "panic": 0, 
+        "alert": 0, 
+        "crit": 0,
+        #"err":0, 
+        "error":0,  
+        "warning": 0,
+        #"warn": 0, 
+        "notice": 0, 
+        "info": 0, 
+        "debug": 0,
+    }
+
     start_ts = None
     log_buffer = []
 
@@ -87,6 +108,7 @@ def run(log, boot, txt, html):
         timestamp = "<span class=\"timestamp\">{}  </span>".format(raw_ts)
 
         fmt = formats.get(level)
+          
         if fmt:
             log_buffer.append(timestamp + fmt.format(cgi.escape(msg)))
             numbers[level] += 1
