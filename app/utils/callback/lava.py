@@ -429,6 +429,22 @@ def _parse_lava_test_data(test_case, test_meta):
         test_case[models.NAME_KEY] = "-".join(extra_name)
 
 
+def _add_login_case(cases, suite_results, name):
+    tests = yaml.load(suite_results, Loader=yaml.CLoader)
+    tests_by_name = {t['name']: t for t in tests}
+    login = tests_by_name.get(name)
+    if not login:
+        return
+    test_case = {
+        models.VERSION_KEY: "1.1",
+        models.TIME_KEY: "0.0",
+        models.INDEX_KEY: 1,
+        models.NAME_KEY: "login",
+        models.STATUS_KEY: login["result"],
+    }
+    cases.append(test_case)
+
+
 def _add_test_results(group, suite_results, suite_name):
     """Add test results from test suite data to a group.
 
@@ -591,14 +607,14 @@ def add_tests(job_data, job_meta, lab_name, db_options,
         _add_rootfs_info(meta, base_path)
         _store_lava_json(job_data, meta)
         groups = []
+        cases = []
 
         for suite_name, suite_results in job_data["results"].iteritems():
-            if suite_name != "lava":
-                # LAVA adds a prefix index to the test suite names "X_" except
-                # for the lava key.  Remove it to get the original name.
-                suite_name = suite_name.partition("_")[2]
-            elif plan_name != "boot":
+            if suite_name == "lava":
+                if plan_name == "baseline":
+                    _add_login_case(cases, suite_results, 'auto-login-action')
                 continue
+            suite_name = suite_name.partition("_")[2]
             group = dict(meta)
             group[models.NAME_KEY] = suite_name
             _add_test_results(group, suite_results, suite_name)
@@ -614,7 +630,7 @@ def add_tests(job_data, job_meta, lab_name, db_options,
             for index, group in enumerate(groups):
                 group[models.INDEX_KEY] = index
             plan[models.SUB_GROUPS_KEY] = groups
-            plan[models.TEST_CASES_KEY] = []
+            plan[models.TEST_CASES_KEY] = cases
 
         if plan:
             ret_code, plan_doc_id, err = \
