@@ -70,6 +70,8 @@ def _get_test_cases(group, db, hierarchy, ns):
 
 def _submit(data, bq_options):
     json_data = json.dumps(data, indent=2)
+    print("submitting:")  # debug
+    print(json_data)
     local_env = dict(os.environ)
     local_env["GOOGLE_APPLICATION_CREDENTIALS"] = bq_options["credentials"]
     kcidb_path = bq_options.get("kcidb_path", "")
@@ -83,6 +85,10 @@ def _submit(data, bq_options):
 
 
 def push_build(build_id, first, bq_options, db_options={}, db=None):
+    print("BigQuery options:")
+    for k, v in bq_options.iteritems():
+        print("{:16} {}".format(k, v))
+    print("first: {}".format(first))
     if db is None:
         db = utils.db.get_db_connection(db_options)
     origin = bq_options.get("origin", "kernelci")
