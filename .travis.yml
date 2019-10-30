@@ -1,0 +1,15 @@
+dist: xenial
+
+language: python
+
+python:
+  - "2.7"
+
+install:
+  - pip install -r requirements.txt
+  - pip install -r requirements-dev.txt
+  - pip install pycodestyle
+
+script:
+  - python -m unittest discover app
+  - pycodestyle app
