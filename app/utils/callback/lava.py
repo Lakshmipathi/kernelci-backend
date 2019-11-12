@@ -90,6 +90,7 @@ META_DATA_MAP_TEST = {
     models.VCS_COMMIT_KEY: "git.commit",
     models.IMAGE_TYPE_KEY: "image.type",
     models.PLAN_KEY: "test.plan",
+    models.PLAN_VARIANT_KEY: "test.plan_variant",
     models.BUILD_ENVIRONMENT_KEY: "job.build_environment",
     models.FILE_SERVER_RESOURCE_KEY: "job.file_server_resource",
 }
@@ -112,6 +113,8 @@ META_DATA_MAP_BOOT = {
     models.INITRD_KEY: "job.initrd_url",
     models.BOARD_KEY: "platform.name",
     models.DEVICE_TYPE_KEY: "device.type",
+    models.PLAN_KEY: "test.plan",
+    models.PLAN_VARIANT_KEY: "test.plan_variant",
     models.BUILD_ENVIRONMENT_KEY: "job.build_environment",
     models.FILE_SERVER_RESOURCE_KEY: "job.file_server_resource",
 }
