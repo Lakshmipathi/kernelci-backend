@@ -112,31 +112,35 @@ def push_build(build_id, first, bq_options, db_options={}, db=None):
     build_id = _make_id(build[models.ID_KEY], ns)
     revision_id = _make_id(build[models.KERNEL_KEY], ns)
 
-    data = {
+    bq_data = {
         'version': '1',
     }
 
     if first:
-        revision = {
+        bq_revision = {
             'origin': origin,
             'origin_id': revision_id,
         }
-        revision.update({
-            rev_key: build[build_key]
-            for rev_key, build_key in BUILD_REV_KEY_MAP.iteritems()
+        bq_revision.update({
+            bq_key: build[build_key]
+            for bq_key, build_key in BUILD_REV_KEY_MAP.iteritems()
         })
-        data['revisions'] = [revision]
+        bq_data['revisions'] = [bq_revision]
 
-    data['builds'] = [
-        {
-            'revision_origin': origin,
-            'revision_origin_id': revision_id,
-            'origin': origin,
-            'origin_id': build_id,
-        },
-    ]
+    bq_build = {
+        'revision_origin': origin,
+        'revision_origin_id': revision_id,
+        'origin': origin,
+        'origin_id': build_id,
+        'valid': build[models.STATUS_KEY] == 'PASS',
+        'start_time': build[models.CREATED_KEY].isoformat(),
+        'description': build[models.GIT_DESCRIBE_V_KEY],
+        'duration': build[models.BUILD_TIME_KEY],
+        'architecture': build[models.ARCHITECTURE_KEY],
+    }
+    bq_data['builds'] = [bq_build]
 
-    _submit(data, bq_options)
+    _submit(bq_data, bq_options)
 
 
 def push_tests(group_id, bq_options, db_options={}, db=None):
@@ -150,7 +154,7 @@ def push_tests(group_id, bq_options, db_options={}, db=None):
     build = _get_build_doc(group, db)
     build_id = _make_id(build[models.ID_KEY], ns)
 
-    data = {
+    bq_data = {
         'version': '1',
         "tests": [
             {
@@ -164,4 +168,4 @@ def push_tests(group_id, bq_options, db_options={}, db=None):
             for test in test_cases
         ],
     }
-    _submit(data, bq_options)
+    _submit(bq_data, bq_options)
