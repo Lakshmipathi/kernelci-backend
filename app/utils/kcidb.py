@@ -25,7 +25,17 @@ import models
 import utils
 import utils.db
 
+# To print some noisy debug stuff in the log
 debug = True
+
+
+# Mapping between kcidb revision keys and build documents
+BUILD_REV_KEY_MAP = {
+    'git_repository_url': models.GIT_URL_KEY,
+    'git_repository_commit_hash': models.GIT_COMMIT_KEY,
+    'git_repository_commit_name': models.GIT_DESCRIBE_V_KEY,
+    'git_repository_branch': models.GIT_BRANCH_KEY,
+}
 
 
 def _make_id(raw_id, ns):
@@ -107,14 +117,16 @@ def push_build(build_id, first, bq_options, db_options={}, db=None):
     }
 
     if first:
-        data['revisions'] = [
-            {
-                'origin': origin,
-                'origin_id': revision_id,
-            },
-        ]
+        revision = {
+            'origin': origin,
+            'origin_id': revision_id,
+        }
+        revision.update({
+            rev_key: build[build_key]
+            for rev_key, build_key in BUILD_REV_KEY_MAP.iteritems()
+        })
+        data['revisions'] = [revision]
 
-    # ToDo: check if revision is new or not instead of submitting it every time
     data['builds'] = [
         {
             'revision_origin': origin,
