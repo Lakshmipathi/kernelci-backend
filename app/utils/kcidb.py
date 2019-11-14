@@ -137,6 +137,7 @@ def push_build(build_id, first, bq_options, db_options={}, db=None):
         'description': build[models.GIT_DESCRIBE_V_KEY],
         'duration': build[models.BUILD_TIME_KEY],
         'architecture': build[models.ARCHITECTURE_KEY],
+        'compiler': build[models.COMPILER_VERSION_FULL_KEY],
     }
     bq_data['builds'] = [bq_build]
 
