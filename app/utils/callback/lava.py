@@ -370,6 +370,11 @@ def add_boot(job_data, job_meta, lab_name, db_options,
     :type base_path: string
     :return ObjectId The boot document id.
     """
+    if job_data.get("status") not in (COMPLETE, INCOMPLETE):
+        utils.LOG.warning("Skipping LAVA job due to unsupported status: "
+                        "{}".format(job_data["status_string"]))
+        return None
+
     ret_code = 201
     doc_id = None
     errors = {}
@@ -584,6 +589,11 @@ def add_tests(job_data, job_meta, lab_name, db_options,
     :type base_path: string
     :return The top-level test group document id as ObjectId object.
     """
+    if job_data.get("status") not in (COMPLETE, ):
+        utils.LOG.warning("Skipping LAVA job due to unsupported status: "
+                        "{}".format(job_data["status_string"]))
+        return None
+
     ret_code = 201
     plan = None
     plan_doc_id = None
