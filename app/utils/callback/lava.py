@@ -136,8 +136,13 @@ def _get_job_meta(meta, job_data):
     :param job_data: The map of keys to search for in the JSON and update.
     :type job_data: dict
     """
+    if job_data["status"] not in (COMPLETE, INCOMPLETE):
+        utils.LOG.error("Unsuported LAVA job status: "
+                        "{}".format(job_data["status_string"]))
+        return False
     meta[models.BOOT_RESULT_KEY] = LAVA_JOB_RESULT[job_data["status"]]
     meta[models.BOARD_INSTANCE_KEY] = job_data["actual_device_id"]
+    return True
 
 
 def _get_definition_meta(meta, job_meta, meta_data_map):
@@ -387,7 +392,9 @@ def add_boot(job_data, job_meta, lab_name, db_options,
     msg = None
 
     try:
-        _get_job_meta(meta, job_data)
+        if not _get_job_meta(meta, job_data):
+            ret_code = 400
+            msg = "Unsupported job metadata"
         _get_definition_meta(meta, job_meta, META_DATA_MAP_BOOT)
         _get_directory_path(meta, base_path)
         _get_lava_meta(meta, job_data)
@@ -601,7 +608,9 @@ def add_tests(job_data, job_meta, lab_name, db_options,
     }
 
     try:
-        _get_job_meta(meta, job_data)
+        if not _get_job_meta(meta, job_data):
+            ret_code = 400
+            msg = "Unsupported job metadata"
         _get_definition_meta(meta, job_meta, META_DATA_MAP_TEST)
         _get_directory_path(meta, base_path)
         _get_lava_meta(meta, job_data)
