@@ -53,7 +53,7 @@ def get_db_client(db_options):
         db_pool = db_options_get("mongodb_pool", 100)
 
         CLIENT = pymongo.MongoClient(
-            host=db_host, port=db_port, max_pool_size=db_pool, w="majority")
+            host=db_host, maxPoolSize=db_pool, port=db_port, w="majority")
 
     return CLIENT
 
@@ -106,7 +106,7 @@ def get_db_connection(db_options, db_name=models.DB_NAME):
     db_pwd = db_options_get("mongodb_password", "")
 
     connection = pymongo.MongoClient(
-        host=db_host, port=db_port, max_pool_size=db_pool, w="majority"
+        host=db_host, maxPoolSize=db_pool, port=db_port, w="majority"
     )[db_name]
 
     if all([db_user, db_pwd]):
@@ -147,7 +147,7 @@ def find_one(collection, value, field="_id", operator="$in", fields=None):
             {
                 field: {operator: value}
             },
-            fields=fields,
+            fields,
         )
 
     return result
@@ -166,7 +166,7 @@ def find_one2(collection, spec_or_id, fields=None, sort=None):
     :param sort: The sort data structure.
     :return None or the search result as a dictionary.
     """
-    return collection.find_one(spec_or_id, fields=fields, sort=sort)
+    return collection.find_one(spec_or_id, fields, sort=sort)
 
 
 def find_one3(
@@ -187,7 +187,7 @@ def find_one3(
     :return None or the search result as a dictionary.
     """
     db = get_db_connection2(db_options)
-    return db[collection].find_one(spec_or_id, fields=fields, sort=sort)
+    return db[collection].find_one(spec_or_id, fields, sort=sort)
 
 
 def find(collection, limit=0, skip=0, spec=None, fields=None, sort=None):
@@ -212,7 +212,7 @@ def find(collection, limit=0, skip=0, spec=None, fields=None, sort=None):
     :return A list of documents matching the specified values.
     """
     return collection.find(
-        limit=limit, skip=skip, fields=fields, sort=sort, spec=spec)
+        spec, fields, limit=limit, skip=skip, sort=sort)
 
 
 def find_and_count(collection, limit=0, skip=0, spec=None, fields=None,
@@ -241,9 +241,10 @@ def find_and_count(collection, limit=0, skip=0, spec=None, fields=None,
     :return The search result and the total count.
     """
     db_result = collection.find(
-        spec=spec, limit=limit, skip=skip, fields=fields, sort=sort)
-
-    return db_result, db_result.count()
+        spec, fields, limit=limit, skip=skip, sort=sort)
+    kw = {'limit': limit} if limit else {}
+    db_results_count = collection.count_documents(spec, skip=skip, **kw)
+    return db_result, db_results_count
 
 
 def count(collection):
@@ -252,34 +253,33 @@ def count(collection):
     :param collection: The collection whose documents should be counted.
     :return The number of documents in the collection.
     """
-    return collection.count()
+    return collection.count_documents()
 
 
-def save(database, document, manipulate=False):
+def save(database, document):
     """Save one document into the database.
 
     :param database: The database where to save.
     :param documents: The document to save, can be a list or a single document:
         the type of each document must be: BaseDocument or a subclass.
     :type list, BaseDocument
-    :param manipulate: If the passed documents have to be manipulated by
-    mongodb. Default to False.
-    :type manipulate: bool
     :return A tuple: first element is the operation code (201 if the save has
     success, 500 in case of an error), second element is the mongodb created
-    `_id` value if manipulate is True, or None.
+    `_id` value if a new document was created.
     """
     ret_value = 500
     doc_id = None
 
     if isinstance(document, mbase.BaseDocument):
+        collection = database[document.collection]
         try:
-            doc_id = database[document.collection].save(
-                document.to_dict(), manipulate=manipulate)
+            doc_data = document.to_dict()
+            spec = {models.ID_KEY: document.id}
+            result = collection.replace_one(spec, doc_data, upsert=True)
+            doc_id = document.id or result.upserted_id
             ret_value = 201
         except pymongo.errors.OperationFailure, ex:
-            utils.LOG.error(
-                "Error saving document into '%s'", document.collection)
+            utils.LOG.error("Error saving document into {}".format(collection))
             utils.LOG.exception(ex)
     else:
         utils.LOG.error(
@@ -289,16 +289,13 @@ def save(database, document, manipulate=False):
     return ret_value, doc_id
 
 
-def save3(collection, document, manipulate=True, db_options=None):
+def save3(collection, document, db_options=None):
     """Save a document into the database.
 
     :param collection: The name of the collection to save to.
     :type collection: str
     :param document: The document to save.
     :type document: dict
-    :param manipulate: If the document should be manipulated on save. Default
-    to true.
-    :type manipulate: bool
     :param db_options: The database connection parameters.
     :type db_options: dict
     :return tuple The return value (201 or 500), and the saved document ID
@@ -311,7 +308,8 @@ def save3(collection, document, manipulate=True, db_options=None):
 
     if isinstance(document, types.DictionaryType):
         try:
-            doc_id = db[collection].save(document, manipulate=manipulate)
+            result = db[collection].insert_one(document)
+            doc_id = result.inserted_id
             ret_val = 201
         except pymongo.errors.OperationFailure as ex:
             utils.LOG.error("Error saving document into '%s'", collection)
@@ -324,7 +322,7 @@ def save3(collection, document, manipulate=True, db_options=None):
     return ret_val, doc_id
 
 
-def save2(connection, collection, document, manipulate=True):
+def save2(connection, collection, document):
     """Save a document into the database.
 
     :param connection: The connection to the database.
@@ -332,9 +330,6 @@ def save2(connection, collection, document, manipulate=True):
     :type collection: str
     :param document: The document to save.
     :type document: dict
-    :param manipulate: If the document should be manipulated on save. Default
-    to true.
-    :type manipulate: bool
     :return tuple The return value (201 or 500), and the saved document ID
     or None
     """
@@ -343,8 +338,8 @@ def save2(connection, collection, document, manipulate=True):
 
     if isinstance(document, types.DictionaryType):
         try:
-            doc_id = \
-                connection[collection].save(document, manipulate=manipulate)
+            result = connection[collection].insert_one(document)
+            doc_id = result.inserted_id
             ret_val = 201
         except pymongo.errors.OperationFailure as ex:
             utils.LOG.error("Error saving document into '%s'", collection)
@@ -357,22 +352,18 @@ def save2(connection, collection, document, manipulate=True):
     return ret_val, doc_id
 
 
-def save_all(database, documents, manipulate=False, fail_on_err=False):
+def save_all(database, documents, fail_on_err=False):
     """Save a list of documents.
 
     :param database: The database where to save.
     :param documents: The list of `BaseDocument` documents.
     :type documents: list
-    :param manipulate: If the database has to create an _id attribute for each
-    document. Default False.
-    :type manipulate: bool
     :param fail_on_err: If in case of an error the save operation should stop
     immediatly. Default False.
     :type fail_on_err: bool
     :return A tuple: first element is the operation code (201 if the save has
     success, 500 in case of an error), second element is the list of the
-    mongodb created `_id` values for each document if manipulate is True, or a
-    list of None values.
+    mongodb created `_id` values for each document.
     """
     ret_value = 201
     doc_id = []
@@ -382,8 +373,7 @@ def save_all(database, documents, manipulate=False, fail_on_err=False):
 
     for document in documents:
         if isinstance(document, mbase.BaseDocument):
-            ret_value, save_id = save(
-                database, document, manipulate=manipulate)
+            ret_value, save_id = save(database, document)
             doc_id.append(save_id)
 
             if fail_on_err and ret_value == 500:
@@ -421,7 +411,7 @@ def update(collection, spec, document, operation="$set"):
     ret_val = 200
 
     try:
-        collection.update(spec, {operation: document})
+        collection.find_one_and_update(spec, {operation: document})
     except pymongo.errors.OperationFailure, ex:
         utils.LOG.exception(str(ex))
         ret_val = 500
@@ -444,7 +434,7 @@ def update2(connection, collection, search, document):
     """
     ret_val = 200
     try:
-        connection[collection].update(search, document)
+        connection[collection].find_one_and_replace(search, document)
     except pymongo.errors.OperationFailure, ex:
         utils.LOG.exception(str(ex))
         ret_val = 500
@@ -469,7 +459,7 @@ def update3(collection, search, document, db_options=None):
     ret_val = 200
     db = get_db_connection2(db_options)
     try:
-        db[collection].update(search, document)
+        db[collection].find_one_and_replace(search, document)
     except pymongo.errors.OperationFailure, ex:
         utils.LOG.exception(str(ex))
         ret_val = 500
@@ -492,10 +482,10 @@ def find_and_update(collection, query, document, operation="$set"):
     ret_val = 200
 
     try:
-        result = collection.find_and_modify(
+        result = collection.find_one_and_update(
             query,
             {operation: document},
-            fields=[models.ID_KEY]
+            {models.ID_KEY: True}
         )
         if not result:
             utils.LOG.error("Document with query '%s' not found", query)
@@ -639,24 +629,4 @@ def aggregate(
     if limit is not None and limit > 0:
         pipeline.append({"$limit": limit})
 
-    result = collection.aggregate(pipeline)
-    p_results = result.get("result", None)
-
-    if p_results:
-        # Pick the first element and check if it has a result key with the
-        # actual list of the results. This happens when the fields argument
-        # is not specified.
-        try:
-            r_element = p_results[0]
-            if r_element.get("result", None):
-                result = [
-                    k["result"] for k in p_results
-                ]
-            else:
-                result = p_results
-        except IndexError:
-            result = []
-    else:
-        result = []
-
-    return result
+    return list(res for res in collection.aggregate(pipeline))
