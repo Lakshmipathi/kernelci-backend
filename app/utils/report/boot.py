@@ -30,7 +30,6 @@ import random
 import models
 import utils.db
 import utils.report.common as rcommon
-import utils.bisect.boot as bbisect
 
 # Register normal Unicode gettext.
 G_ = rcommon.L10N.ugettext
@@ -200,7 +199,6 @@ def parse_regressions(lab_regressions, boot_data, db_options):
     """
     regressions = {}
     regressions_data = None
-    bisections = []
     lab_name = boot_data.get("lab_name", None)
 
     for lab, lab_d in lab_regressions.iteritems():
@@ -228,22 +226,16 @@ def parse_regressions(lab_regressions, boot_data, db_options):
                                 regr_board = regr_build_env.setdefault(
                                     board, [])
                                 good, bad = boots[0], boots[-1]
-                                bisect = bbisect.create_boot_bisect(
-                                    good, bad, db_options)
-                                bisections.append(bisect)
                                 regr = create_regressions_data(
                                     boots, boot_data)
                                 regr_board.append(regr)
-
-    # Remove duplicate entries - they are dictionaries so filter them by _id
-    bisections = {b['_id']: b for b in bisections}.values()
 
     if regressions_data:
         regressions["summary"] = {}
         regressions["summary"]["txt"] = ["Boot Regressions Detected:"]
         regressions["summary"]["html"] = ["Boot Regressions Detected:"]
 
-    return regressions, bisections
+    return regressions
 
 
 def _update_boot_conflicts(data, spec, database):
@@ -413,15 +405,15 @@ def get_boot_data(db_options, job, branch, kernel, lab_name):
         models.LAB_NAME_KEY: lab_name
     }
 
-    # Get the regressions and determine which bisections to run.
+    # Get the regressions
     regressions_doc = database[models.BOOT_REGRESSIONS_COLLECTION].find_one(
         {models.JOB_KEY: job, models.KERNEL_KEY: kernel})
 
     if regressions_doc:
-        data["regressions"], data["bisections"] = parse_regressions(
+        data["regressions"] = parse_regressions(
             regressions_doc[models.REGRESSIONS_KEY], data, db_options)
     else:
-        data["regressions"], data["bisections"] = None, None
+        data["regressions"] = None
 
     if fail_count > 0:
         _update_boot_conflicts(data, spec, database)
@@ -490,76 +482,6 @@ def create_boot_report(
         txt_body = html_body = subject = None
 
     return txt_body, html_body, subject, custom_headers
-
-
-def _start_bisection(bisection, jopts):
-    params_map = {
-        "KERNEL_URL": models.GIT_URL_KEY,
-        "KERNEL_BRANCH": models.GIT_BRANCH_KEY,
-        "ARCH": models.ARCHITECTURE_KEY,
-        "DEFCONFIG": models.DEFCONFIG_FULL_KEY,
-        "TARGET": models.DEVICE_TYPE_KEY,
-        "LAB": models.LAB_NAME_KEY,
-        "KERNEL_TREE": models.JOB_KEY,
-        "KERNEL_NAME": models.KERNEL_KEY,
-        "GOOD_COMMIT": models.BISECT_GOOD_COMMIT_KEY,
-        "BAD_COMMIT": models.BISECT_BAD_COMMIT_KEY,
-        "CC": models.COMPILER_KEY,
-        "CC_VERSION": models.COMPILER_VERSION_KEY,
-        "BUILD_ENVIRONMENT": models.BUILD_ENVIRONMENT_KEY,
-        "TEST_PLAN": models.PLAN_KEY,
-        "TEST_PLAN_VARIANT": models.PLAN_VARIANT_KEY,
-    }
-    params = {
-        k: v for (k, v) in (
-            (k, bisection.get(x)) for k, x in params_map.iteritems()) if v
-    }
-    utils.LOG.info("Triggering bisection for {}/{}, board: {}, lab: {}".format(
-        params["KERNEL_TREE"], params["KERNEL_BRANCH"],
-        params["TARGET"], params["LAB"]))
-    server = jenkins.Jenkins(jopts["url"], jopts["user"], jopts["token"])
-    server.build_job(jopts["bisect"], params)
-
-
-def trigger_bisections(status, job, branch, kernel, lab_name,
-                       db_options, jenkins_options):
-    if not jenkins_options:
-        return "SKIP"
-
-    boot_data = get_boot_data(db_options, job, branch, kernel, lab_name)
-    bisections = boot_data.get("bisections")
-    if not bisections:
-        return "OK"
-
-    # We need to make some changes in-place but not modify incoming data
-    bisections = copy.copy(bisections)
-
-    # Shuffle the bisections in random order to avoid running ones targetting
-    # the same board at the same time and also to avoid any kind of dependency
-    # on the order in which they are being generated.
-    random.shuffle(bisections)
-
-    # Group similar bisections together to only run a subset of them
-    similar_bisections = {}
-    for b in bisections:
-        key = (
-            b[models.BISECT_GOOD_COMMIT_KEY],
-            b[models.BISECT_BAD_COMMIT_KEY],
-        )
-        blist = similar_bisections.setdefault(key, [])
-        blist.append(b)
-    bisections = []
-    for b in similar_bisections.values():
-        bisections.extend(b[:3])
-
-    # Now trigger the bisections
-    for b in bisections:
-        try:
-            _start_bisection(b, jenkins_options)
-        except Exception, e:
-            utils.LOG.error("Failed to start bisection: {}".format(e))
-
-    return "OK"
 
 
 # pylint: disable=too-many-branches
