@@ -166,6 +166,7 @@ class BisectHandler(hbase.BaseHandler):
 
         return response
 
+
 def execute_build_bisect(doc_id, db_options, **kwargs):
     """Execute the build bisect operation.
 
