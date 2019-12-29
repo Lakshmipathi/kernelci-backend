@@ -68,17 +68,6 @@ def _create_bisection(regr, db):
     if doc:
         return doc
 
-    good_case, bad_case = (
-        utils.db.find_one2(
-            db[models.TEST_CASE_COLLECTION], data[models.TEST_CASE_ID_KEY])
-        for data in (good, bad)
-    )
-    good_group, bad_group = (
-        utils.db.find_one2(
-            db[models.TEST_GROUP_COLLECTION], case[models.TEST_GROUP_ID_KEY])
-        for case in (good_case, bad_case)
-    )
-
     doc = models.bisect.TestCaseBisectDocument()
     doc.version = "1.0"
     doc.created_on = datetime.datetime.now(tz=bson.tz_util.utc)
@@ -86,25 +75,25 @@ def _create_bisection(regr, db):
     doc.test_case_path = regr[models.TEST_CASE_PATH_KEY]
     doc.regression_id = regr[models.ID_KEY]
     doc.device_type = regr[models.DEVICE_TYPE_KEY]
-    doc.lab_name = bad_group[models.LAB_NAME_KEY]
-    doc.plan_variant = bad_group[models.PLAN_VARIANT_KEY]
+    doc.lab_name = bad[models.LAB_NAME_KEY]
+    doc.plan_variant = bad[models.PLAN_VARIANT_KEY]
 
     doc.good_commit = good[models.GIT_COMMIT_KEY]
-    doc.good_commit_url = good_group[models.GIT_URL_KEY]
-    doc.good_commit_date = good_group[models.CREATED_KEY]
+    doc.good_commit_url = regr[models.GIT_URL_KEY]
+    doc.good_commit_date = good[models.CREATED_KEY]
     doc.bad_commit = bad[models.GIT_COMMIT_KEY]
-    doc.bad_commit_url = bad_group[models.GIT_URL_KEY]
-    doc.bad_commit_date = bad_group[models.CREATED_KEY]
+    doc.bad_commit_url = regr[models.GIT_URL_KEY]
+    doc.bad_commit_date = bad[models.CREATED_KEY]
     doc.job = regr[models.JOB_KEY]
     doc.kernel = regr[models.KERNEL_KEY]
     doc.git_branch = regr[models.GIT_BRANCH_KEY]
-    doc.git_url = bad_group[models.GIT_URL_KEY]
+    doc.git_url = regr[models.GIT_URL_KEY]
     doc.arch = regr[models.ARCHITECTURE_KEY]
     doc.defconfig_full = regr[models.DEFCONFIG_FULL_KEY]
     doc.compiler = regr[models.COMPILER_KEY]
     doc.compiler_version = regr[models.COMPILER_VERSION_KEY]
     doc.build_environment = regr[models.BUILD_ENVIRONMENT_KEY]
-    doc.build_id = bad_group[models.BUILD_ID_KEY]
+    doc.build_id = bad[models.BUILD_ID_KEY]
     utils.bisect.common.save_bisect_doc(db, doc, regr[models.ID_KEY])
     return doc.to_dict()
 
