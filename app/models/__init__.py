@@ -182,6 +182,7 @@ SURNAME_KEY = "surname"
 SYSTEM_MAP_KEY = "system_map"
 SYSTEM_MAP_SIZE_KEY = "system_map_size"
 TEST_CASE_ID_KEY = "test_case_id"
+TEST_CASE_PATH_KEY = "test_case_path"
 TEST_CASES_KEY = "test_cases"
 TEST_JOB_ID_KEY = "test_job_id"
 TEST_JOB_PATH_KEY = "test_job_path"
@@ -198,6 +199,7 @@ UIMAGE_ADDR_KEY = "uimage_addr"
 UIMAGE_KEY = "uimage"
 UPDATED_KEY = "updated_on"
 USERNAME_KEY = "username"
+REGRESSION_ID_KEY = "regression_id"
 REGRESSIONS_KEY = "regressions"
 VCS_COMMIT_KEY = "vcs_commit"
 VERSION_FULL_KEY = "full_version"
@@ -297,9 +299,6 @@ BISECT_REPORT = "bisect"
 TEST_REPORT = "test"
 
 # Bisect values.
-BISECT_BOOT_STATUS_KEY = "boot_status"
-BISECT_BOOT_CREATED_KEY = "boot_created_on"
-BISECT_BOOT_METADATA_KEY = "boot_metadata"
 BISECT_DEFCONFIG_STATUS_KEY = "build_status"
 BISECT_DEFCONFIG_CREATED_KEY = "build_created_on"
 BISECT_DEFCONFIG_METADATA_KEY = "build_metadata"
@@ -368,8 +367,7 @@ VALID_TEST_CASE_STATUS = [
 
 # The valid collections for the bisect handler.
 BISECT_VALID_COLLECTIONS = [
-    BOOT_COLLECTION,
-    BUILD_COLLECTION
+    BUILD_COLLECTION,
 ]
 
 VALID_EMAIL_FORMATS = [
@@ -794,6 +792,7 @@ SEND_VALID_KEYS = {
             # Bisection keys
             TYPE_KEY,
             ARCHITECTURE_KEY,
+            TEST_CASE_PATH_KEY,
             DEFCONFIG_FULL_KEY,
             BUILD_ENVIRONMENT_KEY,
             DEVICE_TYPE_KEY,
@@ -821,6 +820,7 @@ BISECT_VALID_KEYS = {
         BUILD_ENVIRONMENT_KEY,
         LAB_NAME_KEY,
         DEVICE_TYPE_KEY,
+        TEST_CASE_PATH_KEY,
         BISECT_GOOD_COMMIT_KEY,
         BISECT_BAD_COMMIT_KEY,
         BISECT_GOOD_SUMMARY_KEY,
