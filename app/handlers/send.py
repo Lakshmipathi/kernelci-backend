@@ -34,6 +34,8 @@ import types
 import handlers.base as hbase
 import handlers.response as hresponse
 import models
+import taskqueue.tasks.bisect
+import taskqueue.tasks.report
 import taskqueue.tasks.report as taskq
 import utils
 
@@ -65,6 +67,7 @@ REPORT_TYPE_KEYS = {
         models.DEFCONFIG_FULL_KEY,
         models.BUILD_ENVIRONMENT_KEY,
         models.LAB_NAME_KEY,
+        models.TEST_CASE_PATH_KEY,
         models.BISECT_LOG_KEY,
         models.DEVICE_TYPE_KEY,
         models.BISECT_GOOD_COMMIT_KEY,
@@ -272,13 +275,7 @@ class SendHandler(hbase.BaseHandler):
                     lab_name,
                     email_opts,
                 ],
-                countdown=countdown,
-                link=taskq.trigger_bisections.s(
-                    job,
-                    git_branch,
-                    kernel,
-                    lab_name
-                )
+                countdown=countdown
             )
         else:
             has_errors = True
@@ -383,11 +380,11 @@ class SendHandler(hbase.BaseHandler):
             models.JOB_KEY,
             models.GIT_BRANCH_KEY,
             models.KERNEL_KEY,
-            models.PLAN_KEY
+            models.PLAN_KEY,
         ])
 
         if email_opts.get("to"):
-            taskq.send_test_report.apply_async(
+            taskqueue.tasks.report.send_test_report.apply_async(
                 [
                     job,
                     git_branch,
@@ -396,7 +393,13 @@ class SendHandler(hbase.BaseHandler):
                     report_data,
                     email_opts,
                 ],
-                countdown=countdown
+                countdown=countdown,
+                link=taskqueue.tasks.bisect.trigger_test_bisections.s(
+                    job,
+                    git_branch,
+                    kernel,
+                    plan
+                )
             )
         else:
             has_errors = True
