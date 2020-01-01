@@ -38,6 +38,7 @@ REGRESSION_SPEC_KEYS = [
 REGRESSION_EXTRA_KEYS = [
     models.COMPILER_KEY,
     models.COMPILER_VERSION_KEY,
+    models.GIT_URL_KEY,
 ]
 
 TEST_GROUP_SPEC_KEYS = [
@@ -53,13 +54,27 @@ TEST_GROUP_SPEC_KEYS = [
 
 
 def _test_case_regression_data(test_case, group):
-    return {
+    regr_data = {
         models.TEST_CASE_ID_KEY: test_case[models.ID_KEY],
-        models.CREATED_KEY: test_case[models.CREATED_KEY],
-        models.STATUS_KEY: test_case[models.STATUS_KEY],
-        models.KERNEL_KEY: group[models.KERNEL_KEY],
-        models.GIT_COMMIT_KEY: group[models.GIT_COMMIT_KEY],
     }
+    regr_data.update({
+        k: test_case[k] for k in [
+            models.CREATED_KEY,
+            models.STATUS_KEY,
+        ]
+    })
+    regr_data.update({
+        k: group[k] for k in [
+            models.BOOT_LOG_KEY,
+            models.BOOT_LOG_HTML_KEY,
+            models.BUILD_ID_KEY,
+            models.GIT_COMMIT_KEY,
+            models.KERNEL_KEY,
+            models.LAB_NAME_KEY,
+            models.PLAN_VARIANT_KEY,
+        ]
+    })
+    return regr_data
 
 
 def _check_and_track(test_case, group, last_case, last_group, db, spec,
@@ -69,6 +84,7 @@ def _check_and_track(test_case, group, last_case, last_group, db, spec,
     regr.update({k: group[k] for k in REGRESSION_EXTRA_KEYS})
     regr[models.HIERARCHY_KEY] = hierarchy
     test_case_path = ".".join(hierarchy)
+    regr[models.TEST_CASE_PATH_KEY] = test_case_path
 
     if last_case[models.STATUS_KEY] == "PASS":
         utils.LOG.info("New regression: {}".format(test_case_path))
